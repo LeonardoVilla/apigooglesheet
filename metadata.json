@@ -1,0 +1,6 @@
+{
+  "name": "Google Sheets API Guide",
+  "description": "Guia interativo e comparativo de métodos para criação e consumo de APIs com Google Sheets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
