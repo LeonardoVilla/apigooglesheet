@@ -10,17 +10,18 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "googleapis": "^176.0.0",
     "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
     "next": "^16.3.1",
     "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "motion": "^12.23.24"
+    "react-dom": "^19.0.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^22.14.0",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
-    "@tailwindcss/postcss": "^4.3.3",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.8.2"
   }

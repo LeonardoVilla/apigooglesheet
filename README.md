@@ -4,8 +4,8 @@
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![Google Sheets API](https://img.shields.io/badge/Google_Sheets_API-34A853?style=for-the-badge&logo=google-sheets&logoColor=white)
 
 ---
@@ -92,11 +92,12 @@ function doPost(e) {
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Frontend**: React 18, TypeScript, Vite
-- **Estilização**: Tailwind CSS com tema Dark Mode sofisticado
+- **Frontend & Backend**: Next.js 16 (App Router), React 19, TypeScript
+- **Estilização**: Tailwind CSS v4 com tema Dark Mode sofisticado
 - **Ícones**: Lucide React
-- **Integração de Dados**: Google Sheets API v4, Google Apps Script, GViz API
-- **CI/CD & Deploy**: GitHub Actions, Vercel
+- **Integração de Dados**: Google Sheets API v4 (`googleapis`), Google Apps Script, GViz API
+- **Autenticação**: OAuth 2.0 do Google (para planilhas privadas)
+- **Deploy**: Vercel (Serverless Functions via Route Handlers)
 
 ---
 
@@ -113,22 +114,50 @@ function doPost(e) {
    npm install
    ```
 
-3. **Inicie o servidor de desenvolvimento:**
+3. **Configure as variáveis de ambiente** (necessário apenas para analisar planilhas **privadas** — planilhas públicas funcionam sem isso):
+   ```bash
+   cp .env.example .env.local
+   ```
+   Siga o guia abaixo para preencher `.env.local` com credenciais reais.
+
+4. **Inicie o servidor de desenvolvimento:**
    ```bash
    npm run dev
    ```
 
-4. **Gerar build de produção:**
+5. **Gerar build de produção:**
    ```bash
    npm run build
    ```
 
 ---
 
+## 🔐 Configuração do Google Cloud Console (OAuth)
+
+Necessário apenas se você quiser detectar campos de planilhas **privadas** (planilhas públicas funcionam sem nenhuma credencial, via GViz).
+
+1. Crie um projeto em [console.cloud.google.com](https://console.cloud.google.com).
+2. Vá em **APIs e Serviços → Biblioteca** e habilite a **Google Sheets API**.
+3. Vá em **APIs e Serviços → Tela de consentimento OAuth**:
+   - Tipo de usuário: **Externo**.
+   - Preencha nome do app e e-mail de suporte.
+   - Em **Escopos**, adicione `https://www.googleapis.com/auth/spreadsheets.readonly`.
+   - Em **Usuários de teste**, adicione o(s) e-mail(s) do Google que vão testar o login.
+   > ⚠️ Enquanto o app estiver em modo **Testing**, só contas cadastradas como Test User conseguem completar o login — isso é uma limitação do Google (não é bug do projeto). Verificação do Google só é necessária se você quiser disponibilizar o login publicamente para qualquer conta.
+4. Vá em **APIs e Serviços → Credenciais → Criar Credenciais → ID do cliente OAuth**, tipo **Aplicativo da Web**:
+   - **Origens JavaScript autorizadas**: `http://localhost:3000` e o domínio de produção (Vercel).
+   - **URIs de redirecionamento autorizados**: `http://localhost:3000/api/auth/callback` e `https://SEU-DOMINIO/api/auth/callback`.
+   - Copie o **Client ID** e o **Client Secret** gerados.
+5. Preencha `.env.local` (dev) com os valores de `.env.example`, e cadastre as mesmas variáveis em **Vercel → Project → Settings → Environment Variables** para produção:
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (do Cloud Console)
+   - `SESSION_SECRET` (gere com `openssl rand -base64 32`)
+   - `APP_BASE_URL` (URL da aplicação em cada ambiente)
+
+---
+
 ## 🌐 Deploy
 
-- **Vercel**: Importe o repositório e clique em Deploy (Zero configuração).
-- **GitHub Pages**: Vá em `Settings` > `Pages` > `Source: GitHub Actions`.
+- **Vercel**: Importe o repositório, defina o Framework Preset como **Next.js**, e configure as variáveis de ambiente da seção acima. Deploy automático a cada push.
 
 ---
 

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Link2, Sparkles, Copy, Check, AlertCircle, Loader2, Tag } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link2, Sparkles, Copy, Check, AlertCircle, Loader2, Tag, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 import { extractSpreadsheetId } from '../lib/spreadsheetUrl';
 import { generateAppsScriptCode } from '../lib/appsScriptTemplate';
 
-type ConnectorState = 'idle' | 'analyzing' | 'analyzed' | 'error';
+type ConnectorState = 'idle' | 'analyzing' | 'analyzed' | 'needs-auth' | 'error';
 
 export const SheetConnector: React.FC = () => {
   const [sheetUrl, setSheetUrl] = useState(
@@ -13,11 +13,23 @@ export const SheetConnector: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [connected, setConnected] = useState(false);
 
   const spreadsheetId = extractSpreadsheetId(sheetUrl);
 
-  const handleAnalyze = async () => {
-    if (!spreadsheetId) {
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      const response = await fetch('/api/auth/status');
+      const result = await response.json();
+      setConnected(Boolean(result.connected));
+    } catch {
+      setConnected(false);
+    }
+  }, []);
+
+  const handleAnalyze = useCallback(async (idOverride?: string) => {
+    const targetId = idOverride ?? spreadsheetId;
+    if (!targetId) {
       setState('error');
       setErrorMessage('URL inválida. Cole o link completo da planilha do Google Sheets.');
       return;
@@ -30,16 +42,18 @@ export const SheetConnector: React.FC = () => {
       const response = await fetch('/api/sheets/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spreadsheetId }),
+        body: JSON.stringify({ spreadsheetId: targetId }),
       });
       const result = await response.json();
 
       if (!response.ok || !result.success) {
+        if (result.requiresAuth) {
+          setState('needs-auth');
+          setErrorMessage(result.error || 'Esta planilha não é pública. Conecte-se com o Google para acessá-la.');
+          return;
+        }
         setState('error');
-        setErrorMessage(
-          result.error ||
-            'Esta planilha não é pública. Suporte a planilhas privadas via login Google chega na próxima fase.'
-        );
+        setErrorMessage(result.error || 'Não foi possível analisar esta planilha.');
         return;
       }
 
@@ -49,6 +63,41 @@ export const SheetConnector: React.FC = () => {
       setState('error');
       setErrorMessage('Erro de conexão ao analisar a planilha. Tente novamente.');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spreadsheetId]);
+
+  useEffect(() => {
+    checkAuthStatus();
+
+    const params = new URLSearchParams(window.location.search);
+    const connectedParam = params.get('connected');
+    const spreadsheetIdParam = params.get('spreadsheetId');
+    const authError = params.get('authError');
+
+    if (connectedParam === '1' || authError === '1') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (connectedParam === '1' && spreadsheetIdParam) {
+      setSheetUrl(`https://docs.google.com/spreadsheets/d/${spreadsheetIdParam}/edit`);
+      handleAnalyze(spreadsheetIdParam);
+    } else if (authError === '1') {
+      setState('error');
+      setErrorMessage('Não foi possível concluir o login com o Google. Tente novamente.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleConnect = () => {
+    const url = spreadsheetId
+      ? `/api/auth/login?spreadsheetId=${encodeURIComponent(spreadsheetId)}`
+      : '/api/auth/login';
+    window.location.href = url;
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    setConnected(false);
   };
 
   const generatedScript = headers.length > 0 ? generateAppsScriptCode(headers, { spreadsheetId: spreadsheetId ?? undefined }) : '';
@@ -61,16 +110,30 @@ export const SheetConnector: React.FC = () => {
 
   return (
     <div id="sheet-connector-section" className="bg-zinc-900/40 rounded-xl border border-zinc-800 p-6 space-y-6">
-      <div className="flex items-center gap-2 border-b border-zinc-800 pb-4">
-        <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <Sparkles className="w-4 h-4" />
-        </span>
-        <div>
-          <h3 className="text-base font-bold text-zinc-100">Conectar Planilha e Gerar API</h3>
-          <p className="text-xs text-zinc-400 mt-1">
-            Cole a URL da sua planilha pública para detectar os campos automaticamente e gerar o script customizado.
-          </p>
+      <div className="flex items-center justify-between gap-2 border-b border-zinc-800 pb-4">
+        <div className="flex items-center gap-2">
+          <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <Sparkles className="w-4 h-4" />
+          </span>
+          <div>
+            <h3 className="text-base font-bold text-zinc-100">Conectar Planilha e Gerar API</h3>
+            <p className="text-xs text-zinc-400 mt-1">
+              Cole a URL da sua planilha (pública ou privada) para detectar os campos automaticamente.
+            </p>
+          </div>
         </div>
+
+        {connected ? (
+          <button
+            id="btn-google-logout"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg shrink-0"
+          >
+            <ShieldCheck className="w-3 h-3" />
+            Conectado
+            <LogOut className="w-3 h-3" />
+          </button>
+        ) : null}
       </div>
 
       <div>
@@ -89,7 +152,7 @@ export const SheetConnector: React.FC = () => {
           </div>
           <button
             id="btn-analyze-sheet"
-            onClick={handleAnalyze}
+            onClick={() => handleAnalyze()}
             disabled={state === 'analyzing'}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0"
           >
@@ -98,9 +161,26 @@ export const SheetConnector: React.FC = () => {
           </button>
         </div>
         <p className="text-[11px] text-zinc-500 mt-1">
-          A planilha precisa estar compartilhada como "Qualquer pessoa com o link pode ver".
+          Planilhas públicas são lidas direto. Planilhas privadas pedem login com o Google.
         </p>
       </div>
+
+      {state === 'needs-auth' && (
+        <div id="sheet-connector-needs-auth" className="p-4 bg-blue-500/5 rounded-xl border border-blue-500/20 flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-2">
+            <p className="text-xs text-zinc-300">{errorMessage}</p>
+            <button
+              id="btn-connect-google"
+              onClick={handleConnect}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              Conectar com Google
+            </button>
+          </div>
+        </div>
+      )}
 
       {state === 'error' && (
         <div id="sheet-connector-error" className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 flex items-start gap-2.5">
