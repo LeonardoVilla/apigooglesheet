@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link2, Copy, Check, ExternalLink } from 'lucide-react';
+import { extractSpreadsheetId } from '../lib/spreadsheetUrl';
 
 export const UrlHelper: React.FC = () => {
   const [sheetUrl, setSheetUrl] = useState(
@@ -9,13 +10,7 @@ export const UrlHelper: React.FC = () => {
   const [copiedCsvUrl, setCopiedCsvUrl] = useState(false);
   const [copiedGvizUrl, setCopiedGvizUrl] = useState(false);
 
-  // Extract spreadsheet ID using Regex
-  const extractId = (url: string) => {
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : '';
-  };
-
-  const spreadsheetId = extractId(sheetUrl) || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms';
+  const spreadsheetId = extractSpreadsheetId(sheetUrl) || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms';
   const csvExportUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv`;
   const gvizJsonUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json`;
 

@@ -1,10 +1,12 @@
+'use client';
+
 import React, { useState } from 'react';
-import { INTEGRATION_METHODS } from './data/sheetsMethods';
-import { IntegrationMethodId } from './types';
-import { MethodCard } from './components/MethodCard';
-import { AppsScriptGenerator } from './components/AppsScriptGenerator';
-import { CodeGenerator } from './components/CodeGenerator';
-import { UrlHelper } from './components/UrlHelper';
+import { INTEGRATION_METHODS } from '../data/sheetsMethods';
+import { IntegrationMethodId } from '../types';
+import { MethodCard } from '../components/MethodCard';
+import { SheetConnector } from '../components/SheetConnector';
+import { CodeGenerator } from '../components/CodeGenerator';
+import { UrlHelper } from '../components/UrlHelper';
 import {
   FileSpreadsheet,
   CheckCircle2,
@@ -19,7 +21,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-export default function App() {
+export default function Home() {
   const [selectedMethodId, setSelectedMethodId] = useState<IntegrationMethodId>('apps-script');
   const [activeTab, setActiveTab] = useState<'methods' | 'apps-script' | 'sdk-code' | 'url-tools'>('methods');
 
@@ -108,7 +110,7 @@ export default function App() {
         {/* Quick Answer Banner */}
         <section id="quick-answer-banner" className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-          
+
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
             <div className="space-y-2 max-w-3xl">
               <div className="flex items-center gap-2">
@@ -126,7 +128,7 @@ export default function App() {
                 Você pode criar uma <strong>API REST gratuita em 2 minutos via Google Apps Script</strong> (sem precisar de conta Google Cloud), usar uma <strong>Conta de Serviço para robôs/backends</strong>, ou consumir via <strong>Google Sheets API v4 oficial</strong>.
               </p>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <button
                 id="btn-quick-apps-script"
@@ -299,8 +301,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 2: Apps Script Generator */}
-        {activeTab === 'apps-script' && <AppsScriptGenerator />}
+        {/* Tab 2: Sheet Connector (auto-detecção de campos + geração de script) */}
+        {activeTab === 'apps-script' && <SheetConnector />}
 
         {/* Tab 3: Official SDK / Service Account Code */}
         {activeTab === 'sdk-code' && <CodeGenerator />}
