@@ -33,6 +33,7 @@ export const SheetConnector: React.FC = () => {
 
   const spreadsheetId = extractSpreadsheetId(sheetUrl);
   const pendingPublishRef = useRef(false);
+  const consentAttemptedRef = useRef(false);
 
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -104,6 +105,19 @@ export const SheetConnector: React.FC = () => {
         const result = await response.json();
 
         if (result.requiresPublishAuth || result.requiresAuth) {
+          // Só redireciona para o consentimento uma vez por carregamento da página. Se voltarmos
+          // do Google e a publicação ainda pedir autorização, o problema não é o consentimento —
+          // redirecionar de novo criaria um loop infinito.
+          if (consentAttemptedRef.current) {
+            setState('error');
+            setErrorMessage(
+              'A autorização foi concedida, mas o Google ainda recusou a publicação. ' +
+                'Verifique se você tem permissão de editar esta planilha e se a "API do Google Apps Script" ' +
+                'está ativada em script.google.com/home/usersettings.'
+            );
+            return;
+          }
+          consentAttemptedRef.current = true;
           window.location.href = `/api/auth/login?spreadsheetId=${encodeURIComponent(targetId)}&intent=publish`;
           return;
         }
@@ -117,6 +131,7 @@ export const SheetConnector: React.FC = () => {
 
         if (!response.ok || !result.success) {
           setState('error');
+          setManualAuthUrl(result.userSettingUrl ?? '');
           setErrorMessage(result.error || 'Não foi possível publicar a API.');
           return;
         }
@@ -147,6 +162,8 @@ export const SheetConnector: React.FC = () => {
     if (connectedParam === '1' && spreadsheetIdParam) {
       setSheetUrl(`https://docs.google.com/spreadsheets/d/${spreadsheetIdParam}/edit`);
       pendingPublishRef.current = intentParam === 'publish';
+      // Voltamos de um consentimento de publicação: não pedir consentimento outra vez.
+      consentAttemptedRef.current = intentParam === 'publish';
 
       handleAnalyze(spreadsheetIdParam).then((detectedHeaders) => {
         if (pendingPublishRef.current && detectedHeaders && detectedHeaders.length > 0) {
@@ -276,7 +293,7 @@ export const SheetConnector: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-zinc-950 rounded-lg transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  Abrir editor e autorizar
+                  Abrir e autorizar no Google
                 </a>
                 <button
                   id="btn-retry-publish"

@@ -4,22 +4,37 @@ import { getOAuth2Client } from '../../../../lib/googleAuth';
 import { verifySession, SESSION_COOKIE_NAME } from '../../../../lib/session';
 import { generateAppsScriptCode, generateAppsScriptManifest } from '../../../../lib/appsScriptTemplate';
 
+function errorMessageOf(error: any): string {
+  return JSON.stringify(error?.response?.data ?? error?.message ?? '').toLowerCase();
+}
+
+// Só um 401 (ou o erro explícito de escopo insuficiente) significa "peça consentimento de novo".
+// Um 403 genérico NÃO entra aqui: a Apps Script API devolve 403 para vários motivos que um novo
+// login não resolve (sem permissão de editar a planilha, API não habilitada), e tratá-lo como
+// falta de escopo faz o usuário entrar em loop de consentimento.
 function isMissingScopeError(error: any): boolean {
   const status = error?.code ?? error?.response?.status;
-  const message = JSON.stringify(error?.response?.data ?? error?.message ?? '').toLowerCase();
+  const message = errorMessageOf(error);
   return (
     status === 401 ||
-    message.includes('insufficient') ||
-    message.includes('scope') ||
-    message.includes('permission_denied') ||
-    message.includes('request had insufficient authentication')
+    message.includes('insufficient authentication scopes') ||
+    message.includes('insufficient_scope') ||
+    message.includes('invalid_grant')
   );
+}
+
+// A Apps Script API exige que o próprio usuário ative "Google Apps Script API" nas configurações
+// da conta dele (script.google.com/home/usersettings). Vem desativada por padrão, e sem isso o
+// Google recusa a criação do projeto com 403 mesmo que todos os escopos estejam concedidos.
+function isUserSettingDisabled(error: any): boolean {
+  const message = errorMessageOf(error);
+  return message.includes('user has not enabled') || message.includes('apps script api');
 }
 
 // A primeira publicação de um projeto Apps Script recém-criado pode exigir que o usuário
 // autorize o script uma única vez no editor — exigência do Google, não do nosso fluxo.
 function needsManualAuthorization(error: any): boolean {
-  const message = JSON.stringify(error?.response?.data ?? error?.message ?? '').toLowerCase();
+  const message = errorMessageOf(error);
   return message.includes('authoriz') || message.includes('user has not authorized');
 }
 
@@ -118,6 +133,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (isUserSettingDisabled(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          userSettingUrl: 'https://script.google.com/home/usersettings',
+          error:
+            'Ative a "API Google Apps Script" nas configurações da sua conta Google e tente novamente. ' +
+            'Ela vem desativada por padrão e é obrigatória para publicar scripts pela API.',
+        },
+        { status: 403 }
+      );
+    }
+
     if (scriptId && needsManualAuthorization(error)) {
       return NextResponse.json(
         {
@@ -131,7 +159,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const status = error?.code ?? error?.response?.status;
     const detail = error?.response?.data?.error?.message ?? error?.message ?? 'Erro desconhecido.';
+
+    if (status === 403) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            `O Google recusou a publicação (403): ${detail} — verifique se você tem permissão de editar esta planilha ` +
+            'e se a configuração "API do Google Apps Script" está ativada em script.google.com/home/usersettings.',
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: `Falha ao publicar a API: ${detail}` },
       { status: 502 }
