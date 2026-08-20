@@ -1,39 +1,41 @@
-# 📊 Google Sheets API Hub — SheetAPI
+# 📊 Google Sheets API Hub
 
-> **Transforme qualquer planilha do Google Sheets em uma API REST de alta performance, sem custos de servidor e com deploy em minutos.**
+> **Guia interativo que ensina 4 formas diferentes de transformar uma planilha do Google Sheets em uma fonte de dados/API — com gerador de código ao vivo, sem custo de servidor.**
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Google Sheets API](https://img.shields.io/badge/Google_Sheets_API-34A853?style=for-the-badge&logo=google-sheets&logoColor=white)
+![React](https://img.shields.io/badge/React_19-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Next.js](https://img.shields.io/badge/Next.js_16-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS_v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Google Sheets API](https://img.shields.io/badge/Google_Sheets_API_v4-34A853?style=for-the-badge&logo=google-sheets&logoColor=white)
 
 ---
 
-## 📌 Visão Geral do Projeto
+## 📌 O que é este projeto?
 
-Muitas empresas e projetos precisam de uma forma ágil e sem custo para armazenar, ler e atualizar dados sem a complexidade de gerenciar bancos de dados relacionais pesados. 
+Muita gente pergunta "dá pra usar o Google Sheets como banco de dados/API?" — e a resposta é sim, só que existe **mais de um jeito de fazer isso**, cada um com trade-offs diferentes de facilidade, segurança e custo.
 
-O **Google Sheets API Hub** é uma solução completa desenvolvida para automatizar e demonstrar como transformar planilhas do **Google Sheets em um banco de dados / API REST** pronto para produção, suportando operações de leitura (`GET`) e escrita (`POST`), além de fornecer um painel moderno com monitoramento de latência e gerador de scripts.
+O **Google Sheets API Hub** é uma aplicação **Next.js** que funciona como um **hub didático e interativo**: em vez de só explicar em texto, ela te deixa colar a URL de uma planilha real, detectar as colunas automaticamente e **gerar o código pronto** (Apps Script, Python, Node.js ou cURL) para cada uma das 4 estratégias de integração mais usadas.
 
----
-
-## 🚀 Principais Recursos
-
-- **Dashboard Moderno ("Elegant Dark UI")**: Interface inspirada nas melhores plataformas de desenvolvedores (Vercel, Supabase).
-- **Gerador de Google Apps Script (REST)**: Criação de endpoints públicos/privados em menos de 2 minutos, sem necessidade de configurar projetos complexos no Google Cloud.
-- **Suporte a Múltiplas Arquiteturas de Integração**:
-  1. **Google Apps Script (Web App)**: Recomendado para iniciantes, bots e MVPs rápidos.
-  2. **Conta de Serviço (Service Account)**: Para servidores backend (Node.js / Python com `gspread` e `googleapis`).
-  3. **Google OAuth 2.0 (Sheets API v4)**: Para sistemas SaaS multi-usuário com consentimento granular.
-  4. **Exportação CSV & GViz**: Para leitura pública instantânea em sites estáticos.
-- **Testador Interativo de Endpoints**: Simulação e verificação de requisições e payload JSON em tempo real.
-- **Gestão de API Keys & Logs de Requisições**: Área para simulação de controle de acesso e monitoramento de tráfego.
-- **Deploy Zero-Config**: Pronto para deploy imediato no **Vercel** e **GitHub Pages** (com GitHub Actions integrado).
+> ⚠️ Importante: rodar este projeto **não expõe automaticamente a sua planilha como API**. Ele é uma ferramenta que gera o código/script que você mesmo implanta (no Apps Script, no seu backend, etc.). Quem vira "API" é o script gerado — não este app em si.
 
 ---
 
-## 🏗️ Arquitetura e Estratégia de Integração
+## 🚀 Funcionalidades
+
+O app é dividido em 4 abas:
+
+| Aba | O que faz |
+|---|---|
+| **Comparativo** | Compara os 4 métodos de integração (dificuldade, custo, prós e contras) e mostra o passo a passo de cada um. |
+| **Apps Script (REST)** | Você cola a URL de uma planilha (pública ou privada). O app detecta as colunas automaticamente e gera um script Google Apps Script pronto (`doGet`/`doPost`) para você colar e publicar como Web App. |
+| **SDKs & Código** | Gerador de snippets prontos em **Python (gspread)**, **Node.js (googleapis)** e **cURL** para ler, inserir, atualizar e buscar dados via Conta de Serviço ou API oficial. |
+| **Extrator de IDs** | Cola a URL da planilha e extrai o `spreadsheetId`, além de montar automaticamente as URLs públicas de exportação **CSV** e **GViz (JSON)**. |
+
+Para planilhas **privadas**, o app implementa um fluxo real de **login com Google (OAuth 2.0)** para detectar as colunas sem que você precise compartilhar a planilha publicamente.
+
+---
+
+## 🏗️ Os 4 métodos de integração explicados no app
 
 ```
   [Front-end / App Mobile / Automação]
@@ -45,7 +47,12 @@ O **Google Sheets API Hub** é uma solução completa desenvolvida para automati
       [Planilha Google Sheets (Database)]
 ```
 
-### Exemplo de Script para a Planilha (`Code.gs`):
+1. **Google Apps Script (Web App)** — recomendado para iniciantes, bots e MVPs. Cria um endpoint REST público em minutos, sem Google Cloud Console.
+2. **Conta de Serviço (Service Account)** — ideal para backends (Node.js/Python) que precisam ler/gravar dados sem interação do usuário.
+3. **Google OAuth 2.0 (Sheets API v4)** — para SaaS multiusuário, onde cada pessoa autoriza o acesso à própria planilha.
+4. **Exportação pública CSV / GViz** — leitura instantânea, sem autenticação, para planilhas públicas.
+
+### Exemplo do script gerado (`Code.gs`)
 
 ```javascript
 function doGet(e) {
@@ -90,18 +97,49 @@ function doPost(e) {
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Tecnologias utilizadas
 
-- **Frontend & Backend**: Next.js 16 (App Router), React 19, TypeScript
-- **Estilização**: Tailwind CSS v4 com tema Dark Mode sofisticado
-- **Ícones**: Lucide React
-- **Integração de Dados**: Google Sheets API v4 (`googleapis`), Google Apps Script, GViz API
-- **Autenticação**: OAuth 2.0 do Google (para planilhas privadas)
-- **Deploy**: Vercel (Serverless Functions via Route Handlers)
+| Camada | Tecnologia |
+|---|---|
+| Framework | [Next.js 16](https://nextjs.org/) (App Router + Route Handlers) |
+| UI | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) |
+| Estilo | [Tailwind CSS v4](https://tailwindcss.com/) (tema dark) |
+| Ícones | [Lucide React](https://lucide.dev/) |
+| Animações | [Motion](https://motion.dev/) |
+| Integração com dados | [`googleapis`](https://www.npmjs.com/package/googleapis) (Google Sheets API v4), Google Apps Script, GViz API |
+| Autenticação | OAuth 2.0 do Google, com sessão assinada via HMAC (`node:crypto`) em cookie `httpOnly` |
+| Deploy | Vercel (Serverless Functions via Route Handlers) |
+
+Não há banco de dados nem backend externo: toda a lógica de servidor roda nas **Route Handlers** do Next.js, em `app/api/`.
 
 ---
 
-## 💻 Como Rodar o Projeto Localmente
+## 📁 Estrutura do projeto
+
+```
+apigooglesheet/
+├── app/
+│   ├── api/
+│   │   ├── auth/           # Login/callback/status/logout do OAuth do Google
+│   │   └── sheets/analyze/ # Detecta os cabeçalhos de uma planilha (pública ou privada)
+│   ├── layout.tsx
+│   ├── page.tsx            # Página principal com as 4 abas
+│   └── globals.css
+├── components/              # SheetConnector, CodeGenerator, UrlHelper, MethodCard...
+├── data/sheetsMethods.ts    # Conteúdo comparativo dos 4 métodos + template do Apps Script
+├── lib/
+│   ├── googleAuth.ts        # Cliente OAuth2 do Google
+│   ├── session.ts           # Assinatura/verificação da sessão (cookie)
+│   └── spreadsheetUrl.ts    # Extração do spreadsheetId a partir da URL
+├── types.ts
+└── .env.example
+```
+
+---
+
+## 💻 Como rodar o projeto localmente
+
+**Pré-requisitos:** [Node.js](https://nodejs.org/) 18 ou superior e npm.
 
 1. **Clone o repositório:**
    ```bash
@@ -114,27 +152,34 @@ function doPost(e) {
    npm install
    ```
 
-3. **Configure as variáveis de ambiente** (necessário apenas para analisar planilhas **privadas** — planilhas públicas funcionam sem isso):
+3. **Configure as variáveis de ambiente** (necessário apenas se você quiser testar a detecção de colunas em planilhas **privadas** — planilhas públicas funcionam sem nenhuma credencial):
    ```bash
    cp .env.example .env.local
    ```
-   Siga o guia abaixo para preencher `.env.local` com credenciais reais.
+   Preencha `.env.local` seguindo o guia da seção abaixo.
 
 4. **Inicie o servidor de desenvolvimento:**
    ```bash
    npm run dev
    ```
+   Acesse [http://localhost:3000](http://localhost:3000).
 
-5. **Gerar build de produção:**
+5. **Verifique os tipos (opcional):**
+   ```bash
+   npm run lint
+   ```
+
+6. **Gere o build de produção:**
    ```bash
    npm run build
+   npm run start
    ```
 
 ---
 
 ## 🔐 Configuração do Google Cloud Console (OAuth)
 
-Necessário apenas se você quiser detectar campos de planilhas **privadas** (planilhas públicas funcionam sem nenhuma credencial, via GViz).
+Só é necessário se você quiser testar a leitura de planilhas **privadas** dentro do app (planilhas públicas funcionam sem nenhuma credencial, via GViz).
 
 1. Crie um projeto em [console.cloud.google.com](https://console.cloud.google.com).
 2. Vá em **APIs e Serviços → Biblioteca** e habilite a **Google Sheets API**.
@@ -148,21 +193,28 @@ Necessário apenas se você quiser detectar campos de planilhas **privadas** (pl
    - **Origens JavaScript autorizadas**: `http://localhost:3000` e o domínio de produção (Vercel).
    - **URIs de redirecionamento autorizados**: `http://localhost:3000/api/auth/callback` e `https://SEU-DOMINIO/api/auth/callback`.
    - Copie o **Client ID** e o **Client Secret** gerados.
-5. Preencha `.env.local` (dev) com os valores de `.env.example`, e cadastre as mesmas variáveis em **Vercel → Project → Settings → Environment Variables** para produção:
-   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (do Cloud Console)
-   - `SESSION_SECRET` (gere com `openssl rand -base64 32`)
-   - `APP_BASE_URL` (URL da aplicação em cada ambiente)
+5. Preencha `.env.local` (dev) com os valores abaixo, e cadastre as mesmas variáveis em **Vercel → Project → Settings → Environment Variables** para produção:
+
+| Variável | Descrição |
+|---|---|
+| `GOOGLE_CLIENT_ID` | Client ID gerado no Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Client Secret gerado no Cloud Console |
+| `GOOGLE_REDIRECT_URI` | Ex: `http://localhost:3000/api/auth/callback` |
+| `SESSION_SECRET` | Chave para assinar o cookie de sessão. Gere com `openssl rand -base64 32` |
+| `APP_BASE_URL` | URL base da aplicação em cada ambiente (ex: `http://localhost:3000`) |
+
+> Nunca prefixe essas variáveis com `NEXT_PUBLIC_` — elas são usadas apenas no servidor (Route Handlers) e não devem ir para o front-end.
 
 ---
 
 ## 🌐 Deploy
 
-- **Vercel**: Importe o repositório, defina o Framework Preset como **Next.js**, e configure as variáveis de ambiente da seção acima. Deploy automático a cada push.
+- **Vercel**: importe o repositório, defina o Framework Preset como **Next.js**, e configure as variáveis de ambiente da seção acima. Deploy automático a cada push.
 
 ---
 
 ## 📄 Licença
 
-Distribuído sob a licença MIT. Consulte `LICENSE` para obter mais informações.
+Este repositório ainda não possui um arquivo de licença definido. Se pretende reutilizar o código, entre em contato com o autor.
 
 Desenvolvido por **Leonardo Villa** 🚀
