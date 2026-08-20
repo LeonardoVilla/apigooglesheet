@@ -113,10 +113,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const webAppUrl = deployment.data.entryPoints?.find((entry) => entry.webApp)?.webApp?.url;
+    const webAppEntry = deployment.data.entryPoints?.find((entry) => entry.webApp)?.webApp;
+    const webAppUrl = webAppEntry?.url;
+    // O Google nem sempre aplica o "access" do manifest ao criar o deployment pela API: nesse caso
+    // o Web App nasce restrito ao dono e responde "Acesso negado" para qualquer outra pessoa.
+    const access = webAppEntry?.entryPointConfig?.access ?? null;
 
     return NextResponse.json({
       success: true,
+      access,
+      isPublic: access === 'ANYONE' || access === 'ANYONE_ANONYMOUS',
       webAppUrl,
       scriptId,
       deploymentId: deployment.data.deploymentId,

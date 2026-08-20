@@ -29,6 +29,7 @@ export const SheetConnector: React.FC = () => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [connected, setConnected] = useState(false);
   const [webAppUrl, setWebAppUrl] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
   const [manualAuthUrl, setManualAuthUrl] = useState('');
 
   const spreadsheetId = extractSpreadsheetId(sheetUrl);
@@ -137,6 +138,7 @@ export const SheetConnector: React.FC = () => {
         }
 
         setWebAppUrl(result.webAppUrl ?? '');
+        setIsPublic(Boolean(result.isPublic));
         setState('published');
       } catch {
         setState('error');
@@ -317,6 +319,19 @@ export const SheetConnector: React.FC = () => {
           <p className="text-xs text-zinc-300">
             O script foi criado e implantado na sua planilha. Este é o endpoint da sua API:
           </p>
+
+          {!isPublic && (
+            <div className="flex items-start gap-2 p-3 bg-amber-500/5 rounded-lg border border-amber-500/20">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-zinc-300">
+                A implantação nasceu <strong className="text-amber-400">restrita à sua conta</strong> — o Google nem sempre
+                aplica o acesso público em deploys feitos via API. Para liberar o endpoint, abra{' '}
+                <strong className="text-zinc-200">Extensões &gt; Apps Script &gt; Implantar &gt; Gerenciar implantações</strong>{' '}
+                na planilha e mude <strong className="text-zinc-200">&quot;Quem pode acessar&quot;</strong> para{' '}
+                <strong className="text-zinc-200">&quot;Qualquer pessoa&quot;</strong>.
+              </p>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row gap-2">
             <code className="flex-1 px-3 py-2 text-xs bg-[#050505] border border-zinc-800 rounded-lg text-emerald-400 font-mono break-all">
               {webAppUrl || '(URL não retornada pelo Google)'}
