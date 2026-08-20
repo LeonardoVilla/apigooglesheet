@@ -8,6 +8,8 @@
 ![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS_v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Google Sheets API](https://img.shields.io/badge/Google_Sheets_API_v4-34A853?style=for-the-badge&logo=google-sheets&logoColor=white)
 
+**🌐 Demo online:** [apigooglesheet.vercel.app](https://apigooglesheet.vercel.app/)
+
 ---
 
 ## 📌 O que é este projeto?
@@ -210,6 +212,9 @@ Só é necessário se você quiser testar a leitura de planilhas **privadas** de
 ## 🌐 Deploy
 
 - **Vercel**: importe o repositório, defina o Framework Preset como **Next.js**, e configure as variáveis de ambiente da seção acima. Deploy automático a cada push.
+- **Demo em produção**: [apigooglesheet.vercel.app](https://apigooglesheet.vercel.app/)
+
+> Não use GitHub Pages para este projeto: ele é hospedagem estática e não executa as Route Handlers do Next.js (login OAuth, detecção de planilha privada). Use Vercel ou outro host com suporte a Serverless/Node.js.
 
 ---
 
