@@ -5,6 +5,7 @@ import { INTEGRATION_METHODS } from '../data/sheetsMethods';
 import { IntegrationMethodId } from '../types';
 import { MethodCard } from '../components/MethodCard';
 import { SheetConnector } from '../components/SheetConnector';
+import { DeploymentManager } from '../components/DeploymentManager';
 import { CodeGenerator } from '../components/CodeGenerator';
 import { UrlHelper } from '../components/UrlHelper';
 import {
@@ -19,11 +20,12 @@ import {
   Zap,
   Activity,
   ShieldCheck,
+  Database,
 } from 'lucide-react';
 
 export default function Home() {
   const [selectedMethodId, setSelectedMethodId] = useState<IntegrationMethodId>('apps-script');
-  const [activeTab, setActiveTab] = useState<'methods' | 'apps-script' | 'sdk-code' | 'url-tools'>('methods');
+  const [activeTab, setActiveTab] = useState<'methods' | 'apps-script' | 'my-apis' | 'sdk-code' | 'url-tools'>('methods');
 
   const selectedMethod = INTEGRATION_METHODS.find((m) => m.id === selectedMethodId) || INTEGRATION_METHODS[0];
 
@@ -76,6 +78,18 @@ export default function Home() {
             >
               <Sparkles className="w-3.5 h-3.5" />
               Apps Script (REST)
+            </button>
+            <button
+              id="tab-btn-my-apis"
+              onClick={() => setActiveTab('my-apis')}
+              className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                activeTab === 'my-apis'
+                  ? 'bg-zinc-800 text-emerald-400 shadow-xs font-semibold'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" />
+              Minhas APIs
             </button>
             <button
               id="tab-btn-sdk-code"
@@ -303,6 +317,9 @@ export default function Home() {
 
         {/* Tab 2: Sheet Connector (auto-detecção de campos + geração de script) */}
         {activeTab === 'apps-script' && <SheetConnector />}
+
+        {/* Tab: gerenciamento das planilhas conectadas e seus endpoints */}
+        {activeTab === 'my-apis' && <DeploymentManager />}
 
         {/* Tab 3: Official SDK / Service Account Code */}
         {activeTab === 'sdk-code' && <CodeGenerator />}

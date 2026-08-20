@@ -221,6 +221,28 @@ O app pede permissões **incrementalmente**, seguindo a recomendação do Google
 
 > ℹ️ Na primeira publicação de um script recém-criado, o Google pode exigir que você autorize o script uma única vez abrindo o editor do Apps Script. Quando isso acontece, o app mostra o link direto e um botão "Tentar novamente" — é uma exigência do Google, não uma falha do projeto.
 
+### ⚠️ Limitação conhecida do Google: a primeira implantação
+
+A Apps Script API cria o projeto, envia o código e gera uma implantação — mas **um Web App implantado exclusivamente via API não fica acessível publicamente**. A URL responde "Acesso negado" para qualquer pessoa que não seja o dono, mesmo com o manifest declarando `ANYONE_ANONYMOUS` e com o Google confirmando esse nível de acesso na resposta da API.
+
+O motivo é que o editor do Apps Script só reconhece o script como implantado depois que a primeira publicação passa pela interface, criando a implantação especial *"web app meta-version"*. Implantações criadas apenas pela API não estabelecem esse estado.
+
+**Como concluir a publicação (uma vez por planilha):**
+
+1. Abra o editor do script (o app oferece o link direto após publicar).
+2. Clique em **Implantar → Nova implantação → App da Web**.
+3. Em "Quem pode acessar", escolha **Qualquer pessoa** e autorize.
+
+Depois desse passo manual inicial, atualizações posteriores podem ser feitas pela API mantendo a mesma URL. Referência: [programmatically-deploy-a-web-app](https://github.com/RomainVialard/programmatically-deploy-a-web-app).
+
+---
+
+## 📋 Minhas APIs
+
+A aba **Minhas APIs** lista as planilhas que você já publicou, com o endpoint de cada uma, os campos detectados, e atalhos para abrir a planilha, o editor do script ou testar o endpoint. Você pode dar um nome a cada entrada para identificá-las.
+
+> O histórico fica salvo no `localStorage` do navegador (não há banco de dados no projeto), então é por navegador/máquina.
+
 ---
 
 ## 🌐 Deploy

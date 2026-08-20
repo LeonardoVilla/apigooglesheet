@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { extractSpreadsheetId } from '../lib/spreadsheetUrl';
 import { generateAppsScriptCode } from '../lib/appsScriptTemplate';
+import { saveDeployment } from '../lib/deployments';
 
 type ConnectorState = 'idle' | 'analyzing' | 'analyzed' | 'needs-auth' | 'publishing' | 'published' | 'error';
 
@@ -29,7 +30,7 @@ export const SheetConnector: React.FC = () => {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [connected, setConnected] = useState(false);
   const [webAppUrl, setWebAppUrl] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const [scriptId, setScriptId] = useState('');
   const [manualAuthUrl, setManualAuthUrl] = useState('');
 
   const spreadsheetId = extractSpreadsheetId(sheetUrl);
@@ -138,8 +139,15 @@ export const SheetConnector: React.FC = () => {
         }
 
         setWebAppUrl(result.webAppUrl ?? '');
-        setIsPublic(Boolean(result.isPublic));
+        setScriptId(result.scriptId ?? '');
         setState('published');
+        saveDeployment({
+          spreadsheetId: targetId,
+          headers: targetHeaders,
+          webAppUrl: result.webAppUrl ?? '',
+          scriptId: result.scriptId ?? '',
+          createdAt: new Date().toISOString(),
+        });
       } catch {
         setState('error');
         setErrorMessage('Erro de conexão ao publicar a API. Tente novamente.');
@@ -320,18 +328,29 @@ export const SheetConnector: React.FC = () => {
             O script foi criado e implantado na sua planilha. Este é o endpoint da sua API:
           </p>
 
-          {!isPublic && (
-            <div className="flex items-start gap-2 p-3 bg-amber-500/5 rounded-lg border border-amber-500/20">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 p-3 bg-amber-500/5 rounded-lg border border-amber-500/20">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-2">
               <p className="text-[11px] text-zinc-300">
-                A implantação nasceu <strong className="text-amber-400">restrita à sua conta</strong> — o Google nem sempre
-                aplica o acesso público em deploys feitos via API. Para liberar o endpoint, abra{' '}
-                <strong className="text-zinc-200">Extensões &gt; Apps Script &gt; Implantar &gt; Gerenciar implantações</strong>{' '}
-                na planilha e mude <strong className="text-zinc-200">&quot;Quem pode acessar&quot;</strong> para{' '}
-                <strong className="text-zinc-200">&quot;Qualquer pessoa&quot;</strong>.
+                <strong className="text-amber-400">Falta um passo (limitação do Google):</strong> implantações criadas
+                pela API não ficam acessíveis publicamente até que a primeira publicação seja confirmada no editor.
+                Abra o editor, clique em <strong className="text-zinc-200">Implantar &gt; Nova implantação &gt; App da Web</strong>,
+                escolha <strong className="text-zinc-200">&quot;Qualquer pessoa&quot;</strong> e autorize. A URL abaixo passa a responder.
               </p>
+              {scriptId && (
+                <a
+                  id="link-open-script-editor"
+                  href={`https://script.google.com/d/${scriptId}/edit`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold bg-amber-600 hover:bg-amber-500 text-zinc-950 rounded-lg transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Abrir editor do Apps Script
+                </a>
+              )}
             </div>
-          )}
+          </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <code className="flex-1 px-3 py-2 text-xs bg-[#050505] border border-zinc-800 rounded-lg text-emerald-400 font-mono break-all">
               {webAppUrl || '(URL não retornada pelo Google)'}
