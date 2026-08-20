@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthUrl } from '../../../../lib/googleAuth';
+import { getAuthUrl, SCOPES, PUBLISH_SCOPES } from '../../../../lib/googleAuth';
 
 export async function GET(request: NextRequest) {
   const spreadsheetId = request.nextUrl.searchParams.get('spreadsheetId') ?? '';
+  const intent = request.nextUrl.searchParams.get('intent') === 'publish' ? 'publish' : '';
 
-  const state = Buffer.from(JSON.stringify({ spreadsheetId, nonce: crypto.randomUUID() })).toString('base64url');
+  const state = Buffer.from(JSON.stringify({ spreadsheetId, intent, nonce: crypto.randomUUID() })).toString('base64url');
+  const scopes = intent === 'publish' ? [...SCOPES, ...PUBLISH_SCOPES] : SCOPES;
 
   let authUrl: string;
   try {
-    authUrl = getAuthUrl(state);
+    authUrl = getAuthUrl(state, scopes);
   } catch (error) {
     return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
   }

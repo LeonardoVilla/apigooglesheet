@@ -1,9 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link2, Sparkles, Copy, Check, AlertCircle, Loader2, Tag, LogIn, LogOut, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Link2,
+  Sparkles,
+  Copy,
+  Check,
+  AlertCircle,
+  Loader2,
+  Tag,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  Rocket,
+  ExternalLink,
+} from 'lucide-react';
 import { extractSpreadsheetId } from '../lib/spreadsheetUrl';
 import { generateAppsScriptCode } from '../lib/appsScriptTemplate';
 
-type ConnectorState = 'idle' | 'analyzing' | 'analyzed' | 'needs-auth' | 'error';
+type ConnectorState = 'idle' | 'analyzing' | 'analyzed' | 'needs-auth' | 'publishing' | 'published' | 'error';
 
 export const SheetConnector: React.FC = () => {
   const [sheetUrl, setSheetUrl] = useState(
@@ -13,9 +26,13 @@ export const SheetConnector: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [webAppUrl, setWebAppUrl] = useState('');
+  const [manualAuthUrl, setManualAuthUrl] = useState('');
 
   const spreadsheetId = extractSpreadsheetId(sheetUrl);
+  const pendingPublishRef = useRef(false);
 
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -59,6 +76,7 @@ export const SheetConnector: React.FC = () => {
 
       setHeaders(result.headers);
       setState('analyzed');
+      return result.headers as string[];
     } catch {
       setState('error');
       setErrorMessage('Erro de conexão ao analisar a planilha. Tente novamente.');
@@ -66,12 +84,60 @@ export const SheetConnector: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spreadsheetId]);
 
+  const handlePublish = useCallback(
+    async (overrides?: { spreadsheetId?: string; headers?: string[] }) => {
+      const targetId = overrides?.spreadsheetId ?? spreadsheetId;
+      const targetHeaders = overrides?.headers ?? headers;
+
+      if (!targetId || targetHeaders.length === 0) return;
+
+      setState('publishing');
+      setErrorMessage('');
+      setManualAuthUrl('');
+
+      try {
+        const response = await fetch('/api/sheets/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ spreadsheetId: targetId, headers: targetHeaders }),
+        });
+        const result = await response.json();
+
+        if (result.requiresPublishAuth || result.requiresAuth) {
+          window.location.href = `/api/auth/login?spreadsheetId=${encodeURIComponent(targetId)}&intent=publish`;
+          return;
+        }
+
+        if (result.needsManualAuthorization) {
+          setState('error');
+          setManualAuthUrl(result.editorUrl ?? '');
+          setErrorMessage(result.error || 'Autorize o script uma única vez no editor do Apps Script.');
+          return;
+        }
+
+        if (!response.ok || !result.success) {
+          setState('error');
+          setErrorMessage(result.error || 'Não foi possível publicar a API.');
+          return;
+        }
+
+        setWebAppUrl(result.webAppUrl ?? '');
+        setState('published');
+      } catch {
+        setState('error');
+        setErrorMessage('Erro de conexão ao publicar a API. Tente novamente.');
+      }
+    },
+    [spreadsheetId, headers]
+  );
+
   useEffect(() => {
     checkAuthStatus();
 
     const params = new URLSearchParams(window.location.search);
     const connectedParam = params.get('connected');
     const spreadsheetIdParam = params.get('spreadsheetId');
+    const intentParam = params.get('intent');
     const authError = params.get('authError');
 
     if (connectedParam === '1' || authError === '1') {
@@ -80,7 +146,14 @@ export const SheetConnector: React.FC = () => {
 
     if (connectedParam === '1' && spreadsheetIdParam) {
       setSheetUrl(`https://docs.google.com/spreadsheets/d/${spreadsheetIdParam}/edit`);
-      handleAnalyze(spreadsheetIdParam);
+      pendingPublishRef.current = intentParam === 'publish';
+
+      handleAnalyze(spreadsheetIdParam).then((detectedHeaders) => {
+        if (pendingPublishRef.current && detectedHeaders && detectedHeaders.length > 0) {
+          pendingPublishRef.current = false;
+          handlePublish({ spreadsheetId: spreadsheetIdParam, headers: detectedHeaders });
+        }
+      });
     } else if (authError === '1') {
       setState('error');
       setErrorMessage('Não foi possível concluir o login com o Google. Tente novamente.');
@@ -108,6 +181,12 @@ export const SheetConnector: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const copyWebAppUrl = () => {
+    navigator.clipboard.writeText(webAppUrl);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
   return (
     <div id="sheet-connector-section" className="bg-zinc-900/40 rounded-xl border border-zinc-800 p-6 space-y-6">
       <div className="flex items-center justify-between gap-2 border-b border-zinc-800 pb-4">
@@ -118,7 +197,7 @@ export const SheetConnector: React.FC = () => {
           <div>
             <h3 className="text-base font-bold text-zinc-100">Conectar Planilha e Gerar API</h3>
             <p className="text-xs text-zinc-400 mt-1">
-              Cole a URL da sua planilha (pública ou privada) para detectar os campos automaticamente.
+              Cole a URL da planilha para detectar os campos e publicar a API direto nela.
             </p>
           </div>
         </div>
@@ -185,11 +264,61 @@ export const SheetConnector: React.FC = () => {
       {state === 'error' && (
         <div id="sheet-connector-error" className="p-4 bg-amber-500/5 rounded-xl border border-amber-500/20 flex items-start gap-2.5">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-zinc-300">{errorMessage}</p>
+          <div className="flex-1 space-y-2">
+            <p className="text-xs text-zinc-300">{errorMessage}</p>
+            {manualAuthUrl && (
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  id="link-manual-authorize"
+                  href={manualAuthUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-zinc-950 rounded-lg transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Abrir editor e autorizar
+                </a>
+                <button
+                  id="btn-retry-publish"
+                  onClick={() => handlePublish()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 rounded-lg transition-colors"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {state === 'analyzed' && (
+      {state === 'published' && (
+        <div id="sheet-connector-published" className="p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/20 space-y-3">
+          <div className="flex items-center gap-2">
+            <Rocket className="w-4 h-4 text-emerald-400" />
+            <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wide">API publicada com sucesso</h4>
+          </div>
+          <p className="text-xs text-zinc-300">
+            O script foi criado e implantado na sua planilha. Este é o endpoint da sua API:
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <code className="flex-1 px-3 py-2 text-xs bg-[#050505] border border-zinc-800 rounded-lg text-emerald-400 font-mono break-all">
+              {webAppUrl || '(URL não retornada pelo Google)'}
+            </code>
+            {webAppUrl && (
+              <button
+                id="btn-copy-webapp-url"
+                onClick={copyWebAppUrl}
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/60 rounded-lg transition-colors shrink-0"
+              >
+                {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedUrl ? 'Copiado!' : 'Copiar URL'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {headers.length > 0 && state !== 'analyzing' && (
         <div className="space-y-5">
           <div>
             <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
@@ -209,6 +338,18 @@ export const SheetConnector: React.FC = () => {
             </div>
           </div>
 
+          {state !== 'published' && (
+            <button
+              id="btn-publish-api"
+              onClick={() => handlePublish()}
+              disabled={state === 'publishing'}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-zinc-950 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {state === 'publishing' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
+              {state === 'publishing' ? 'Publicando na planilha...' : 'Gerar e Publicar API automaticamente'}
+            </button>
+          )}
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wide">
@@ -227,7 +368,7 @@ export const SheetConnector: React.FC = () => {
               <pre className="text-zinc-300">{generatedScript}</pre>
             </div>
             <p className="text-[11px] text-zinc-500">
-              Cole este código em <strong className="text-zinc-400">Extensões &gt; Apps Script</strong> da sua planilha e implante como Aplicativo da Web.
+              Prefere fazer manualmente? Cole este código em <strong className="text-zinc-400">Extensões &gt; Apps Script</strong> da sua planilha e implante como Aplicativo da Web.
             </p>
           </div>
         </div>

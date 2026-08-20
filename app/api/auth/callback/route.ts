@@ -12,10 +12,12 @@ export async function GET(request: NextRequest) {
   }
 
   let spreadsheetId = '';
+  let intent = '';
   if (state) {
     try {
       const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'));
       spreadsheetId = typeof decoded.spreadsheetId === 'string' ? decoded.spreadsheetId : '';
+      intent = decoded.intent === 'publish' ? 'publish' : '';
     } catch {
       // state inválido/adulterado — segue sem retomar a análise automaticamente
     }
@@ -44,6 +46,9 @@ export async function GET(request: NextRequest) {
   redirectUrl.searchParams.set('connected', '1');
   if (spreadsheetId) {
     redirectUrl.searchParams.set('spreadsheetId', spreadsheetId);
+  }
+  if (intent) {
+    redirectUrl.searchParams.set('intent', intent);
   }
 
   const response = NextResponse.redirect(redirectUrl);

@@ -1,6 +1,10 @@
 import { google } from 'googleapis';
 
 export const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
+export const PUBLISH_SCOPES = [
+  'https://www.googleapis.com/auth/script.projects',
+  'https://www.googleapis.com/auth/script.deployments',
+];
 
 export function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -14,12 +18,13 @@ export function getOAuth2Client() {
   return new google.auth.OAuth2(clientId, clientSecret, redirectUri);
 }
 
-export function getAuthUrl(state: string): string {
+export function getAuthUrl(state: string, scopes: string[] = SCOPES): string {
   const client = getOAuth2Client();
   return client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: SCOPES,
+    include_granted_scopes: true,
+    scope: scopes,
     state,
   });
 }

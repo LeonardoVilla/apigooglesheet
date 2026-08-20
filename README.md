@@ -181,14 +181,19 @@ apigooglesheet/
 
 ## 🔐 Configuração do Google Cloud Console (OAuth)
 
-Só é necessário se você quiser testar a leitura de planilhas **privadas** dentro do app (planilhas públicas funcionam sem nenhuma credencial, via GViz).
+Só é necessário se você quiser ler planilhas **privadas** ou usar a **publicação automática** do script dentro do app (planilhas públicas funcionam sem nenhuma credencial, via GViz).
 
 1. Crie um projeto em [console.cloud.google.com](https://console.cloud.google.com).
-2. Vá em **APIs e Serviços → Biblioteca** e habilite a **Google Sheets API**.
+2. Vá em **APIs e Serviços → Biblioteca** e habilite:
+   - **Google Sheets API** (leitura das colunas)
+   - **Apps Script API** (publicação automática do script na planilha)
 3. Vá em **APIs e Serviços → Tela de consentimento OAuth**:
    - Tipo de usuário: **Externo**.
    - Preencha nome do app e e-mail de suporte.
-   - Em **Escopos**, adicione `https://www.googleapis.com/auth/spreadsheets.readonly`.
+   - Em **Escopos** (ou **Acesso a dados**, na interface nova), adicione:
+     - `https://www.googleapis.com/auth/spreadsheets.readonly` — ler as colunas
+     - `https://www.googleapis.com/auth/script.projects` — criar o projeto Apps Script
+     - `https://www.googleapis.com/auth/script.deployments` — publicar como Web App
    - Em **Usuários de teste**, adicione o(s) e-mail(s) do Google que vão testar o login.
    > ⚠️ Enquanto o app estiver em modo **Testing**, só contas cadastradas como Test User conseguem completar o login — isso é uma limitação do Google (não é bug do projeto). Verificação do Google só é necessária se você quiser disponibilizar o login publicamente para qualquer conta.
 4. Vá em **APIs e Serviços → Credenciais → Criar Credenciais → ID do cliente OAuth**, tipo **Aplicativo da Web**:
@@ -206,6 +211,15 @@ Só é necessário se você quiser testar a leitura de planilhas **privadas** de
 | `APP_BASE_URL` | URL base da aplicação em cada ambiente (ex: `http://localhost:3000`) |
 
 > Nunca prefixe essas variáveis com `NEXT_PUBLIC_` — elas são usadas apenas no servidor (Route Handlers) e não devem ir para o front-end.
+
+### Como funciona o consentimento
+
+O app pede permissões **incrementalmente**, seguindo a recomendação do Google:
+
+- Ao analisar uma planilha privada, pede apenas **leitura** (`spreadsheets.readonly`).
+- Só ao clicar em **"Gerar e Publicar API"** é que pede as permissões de **criar e publicar scripts** (`script.projects`, `script.deployments`), em uma segunda tela de consentimento.
+
+> ℹ️ Na primeira publicação de um script recém-criado, o Google pode exigir que você autorize o script uma única vez abrindo o editor do Apps Script. Quando isso acontece, o app mostra o link direto e um botão "Tentar novamente" — é uma exigência do Google, não uma falha do projeto.
 
 ---
 
